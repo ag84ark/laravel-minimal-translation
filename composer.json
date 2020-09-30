@@ -1,0 +1,54 @@
+{
+    "name": "ag84ark/laravel-minimal-translation",
+    "description": "A minimal translation helper for Laravel Localization",
+    "keywords": [
+        "ag84ark",
+        "laravel-minimal-translation"
+    ],
+    "homepage": "https://github.com/ag84ark/laravel-minimal-translation",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "George Cojocaru",
+            "email": "arkangel062003@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.1",
+        "illuminate/support": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^4.0",
+        "phpunit/phpunit": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ag84ark\\LaravelMinimalTranslation\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ag84ark\\LaravelMinimalTranslation\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ag84ark\\LaravelMinimalTranslation\\LaravelMinimalTranslationServiceProvider"
+            ],
+            "aliases": {
+                "LaravelMinimalTranslation": "Ag84ark\\LaravelMinimalTranslation\\LaravelMinimalTranslationFacade"
+            }
+        }
+    }
+}
