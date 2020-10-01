@@ -22,8 +22,6 @@
 
     </div>
 
-
-
     <form action="{{route('minimal_translation.save', [$lang])}}" method="POST">
         @csrf
         <div class="p-5 bg-gray-100 text-left">

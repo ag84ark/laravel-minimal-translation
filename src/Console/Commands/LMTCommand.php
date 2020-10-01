@@ -52,7 +52,10 @@ class LMTCommand extends Command
 
         $this->addToBaseTranslations();
 
-        dump($this->foundTranslations);
+        $this->writeBaseTranslation();
+
+        $this->info("Finished: " . now()->toTimeString());
+
     }
 
     private function init(): void
@@ -96,14 +99,14 @@ class LMTCommand extends Command
 
                 $this->info("Scanning finished: " . now()->toTimeString());
 
-                $this->info("Starting database sync: " . now()->toTimeString());
+                // $this->info("Starting database sync: " . now()->toTimeString());
 
 
                 //dump($allTranslations['single']);
 
                 //$oldTranslations = $this->dbSync->mark_not_found_translations();
 
-                $this->info("Finished database sync: " . now()->toTimeString());
+                //$this->info("Finished database sync: " . now()->toTimeString());
                 //$this->info("Old translations found $oldTranslations");
                 //$this->info("Items added  " . count($this->dbSync->getIdsAdded()));
                 //$this->info("Total items found " . count($this->dbSync->getIds()));
@@ -116,13 +119,6 @@ class LMTCommand extends Command
 
         }
 
-        foreach ($this->foundTranslations['single'] as $group => $items) {
-            dump($this->foundTranslations['single'][$group]);
-            foreach ($items as $key => $_) {
-                //dump([$key]);
-                //$this->dbSync->handle($group, $key);
-            }
-        }
     }
 
     private function searchForKey(): void
@@ -157,5 +153,14 @@ class LMTCommand extends Command
         ksort($this->baseTranslations, SORT_NATURAL | SORT_FLAG_CASE);
         $this->info("Base translations");
         dump($this->baseTranslations);
+    }
+
+    private function writeBaseTranslation():void
+    {
+        try {
+            $this->jsonFileManager->writeJsonFile($this->baseTranslations, config('laravel-minimal-translation.base_file'));
+        } catch (\Exception $e) {
+            $this->warn("Error while trying to write the base file. Error: " . $e->getMessage());
+        }
     }
 }
