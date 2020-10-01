@@ -2,6 +2,7 @@
 
 namespace Ag84ark\LaravelMinimalTranslation;
 
+use Ag84ark\LaravelMinimalTranslation\Console\Commands\LMTCommand;
 use Illuminate\Support\ServiceProvider;
 
 class LaravelMinimalTranslationServiceProvider extends ServiceProvider
@@ -15,19 +16,20 @@ class LaravelMinimalTranslationServiceProvider extends ServiceProvider
          * Optional methods to load your package assets
          */
         // $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'laravel-minimal-translation');
-        // $this->loadViewsFrom(__DIR__.'/../resources/views', 'laravel-minimal-translation');
+         $this->loadViewsFrom(__DIR__.'/../resources/views', 'laravel-minimal-translation');
         // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        // $this->loadRoutesFrom(__DIR__.'/routes.php');
+         $this->loadRoutesFrom(__DIR__.'/../routes/routes.php');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/config.php' => config_path('laravel-minimal-translation.php'),
-            ], 'config');
+            ], 'lmt-config');
 
             // Publishing the views.
-            /*$this->publishes([
+            $this->loadViewsFrom(__DIR__.'/../resources/views', 'lmt');
+            $this->publishes([
                 __DIR__.'/../resources/views' => resource_path('views/vendor/laravel-minimal-translation'),
-            ], 'views');*/
+            ], 'views');
 
             // Publishing assets.
             /*$this->publishes([
@@ -40,7 +42,9 @@ class LaravelMinimalTranslationServiceProvider extends ServiceProvider
             ], 'lang');*/
 
             // Registering package commands.
-            // $this->commands([]);
+             $this->commands([
+                 LMTCommand::class
+             ]);
         }
     }
 
