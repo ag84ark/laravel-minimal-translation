@@ -11,6 +11,7 @@ class LMTCommand extends Command
 {
     protected $signature = 'lmt:scan-i18n
                             {--find= : Find a translate key and display files where was found (case-sensitive)}
+                            {--show-old : Prints the list of the keys not found at the end }
                             {--ignore : Write base file even if duplicates due to case-sensitive were found}
                             {--remove-old : Remove texts that were not found during the search}
                             {--display : Display only the found i18n texts, no write to base file}';
@@ -21,6 +22,8 @@ class LMTCommand extends Command
     private $jsonFileManager;
 
     private $removeOld = false;
+
+    private $showOld = false;
 
     private $display = false;
 
@@ -49,8 +52,9 @@ class LMTCommand extends Command
 
         $this->getTranslations();
 
+        $singleTranslations = $this->foundTranslations['single']['single'] ?? [];
         if ($this->display) {
-            dump($this->foundTranslations['single']['single'] ?? []);
+            dump($singleTranslations);
             return;
         }
 
@@ -59,13 +63,21 @@ class LMTCommand extends Command
         if (!$this->ignore && count($this->duplicatesFromCaseSensitive)) {
             $this->warn("Duplicates where found");
             dump($this->duplicatesFromCaseSensitive);
-            $this->warn("Base file was not updated");
+            $this->error("Base file was not updated");
             return;
         }
 
         $this->writeBaseTranslation();
 
-        $this->info("Finished: " . now()->toTimeString());
+        $this->info("\nFound  " . count($singleTranslations)
+            . " translation keys, and base has now " . count($this->baseTranslations) . " keys");
+
+        if ($this->showOld && count($singleTranslations) !== count($this->baseTranslations)) {
+            $this->info("\nTranslations keys not found in files: \n");
+            dump(array_diff_key($this->baseTranslations, $singleTranslations));
+        }
+
+        $this->info("\nFinished: " . now()->toTimeString());
     }
 
     private function init(): void
@@ -86,6 +98,7 @@ class LMTCommand extends Command
         $this->ignore = $this->option('ignore') ?? $this->ignore;
         $this->display = $this->option('display') ?? $this->display;
         $this->removeOld = $this->option('remove-old') ?? $this->removeOld;
+        $this->showOld = $this->option('show-old') ?? $this->showOld;
         $this->findKey = $this->option('find');
 
         $this->baseTranslations = $this->jsonFileManager->readJsonFile(config('laravel-minimal-translation.base_file'));
@@ -106,7 +119,7 @@ class LMTCommand extends Command
 
                 return $scanner->getTranslationFiles($key);
             } catch (\Exception $exception) {
-                $this->warn($exception->getMessage());
+                $this->error($exception->getMessage());
             }
         }
     }
@@ -141,7 +154,7 @@ class LMTCommand extends Command
 
                 //$this->dbSync->resetIds();
             } catch (\Exception $exception) {
-                $this->warn($exception->getMessage());
+                $this->error($exception->getMessage());
             }
         }
     }
@@ -155,12 +168,11 @@ class LMTCommand extends Command
         foreach (array_keys($singleTranslations) as $key) {
             if (!array_key_exists($key, $this->baseTranslations)) {
                 $this->checkDuplicate($key);
-                $this->baseTranslations[$key] = $key;
+                $this->baseTranslations[$key] = ucfirst($key);
             }
         }
 
         ksort($this->baseTranslations, SORT_NATURAL | SORT_FLAG_CASE);
-
     }
 
     private function checkDuplicate(string $key): void
@@ -180,7 +192,7 @@ class LMTCommand extends Command
         try {
             $this->jsonFileManager->writeJsonBaseFile($this->baseTranslations);
         } catch (\Exception $e) {
-            $this->warn("Error while trying to write the base file. Error: " . $e->getMessage());
+            $this->error("Error while trying to write the base file. Error: " . $e->getMessage());
         }
     }
 }

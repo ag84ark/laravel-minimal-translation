@@ -3,35 +3,34 @@
 
 namespace Ag84ark\LaravelMinimalTranslation\Http\Controllers;
 
-
 use Ag84ark\LaravelMinimalTranslation\JsonFileManager;
 
 class MinimalTranslationController
 {
-
     private $jsonFileManager;
+    private $mainLanguage;
+    private $baseFile;
 
     public function __construct(JsonFileManager $jsonFileManager)
     {
         $this->jsonFileManager = $jsonFileManager;
+        $this->mainLanguage = (string) config('laravel-minimal-translation.main_language');
+        $this->baseFile = (string) config('laravel-minimal-translation.base_file');
     }
 
     public function index(string $lang = null)
     {
         try {
-            $lang = $lang ?? config('laravel-minimal-translation.main_language');
+            $lang = $lang ?? $this->mainLanguage;
 
-            $baseData = $this->jsonFileManager->readJsonFile(config('laravel-minimal-translation.base_file'));
+            $baseData = $this->jsonFileManager->readJsonFile($this->baseFile);
             $langData = $this->jsonFileManager->readJsonFile($lang);
             $data = $this->getCombinedData($baseData, $langData);
 
             return view('laravel-minimal-translation::index', compact('data', 'lang', 'baseData'));
-
         } catch (\Exception $exception) {
             return $exception->getMessage();
         }
-
-
     }
 
 
@@ -45,32 +44,22 @@ class MinimalTranslationController
         return $baseData;
     }
 
-    public function save(string $lang)
+    public function save(string $lang = null)
     {
-        $baseData = $this->jsonFileManager->readJsonFile(config('laravel-minimal-translation.base_file'));
+        $baseData = $this->jsonFileManager->readJsonFile($this->baseFile);
 
 
-        $lang = $lang ?? config('laravel-minimal-translation.main_language');
+        $lang = $lang ?? $this->mainLanguage;
         $data = [];
 
-        foreach (array_keys($baseData) as $key){
-            $data[$key] = request()->get($this->spaceToLodash($key)) ?? '';
+        foreach (array_keys($baseData) as $key) {
+            $data[$key] = request()->get($this->spaceAndPointToLodash($key)) ?? '';
         }
 
-        //$data = collect(request()->all())
-        //    ->mapWithKeys(function ($item, $key) {
-        //        return [/*$this->lodashToSpace($key)*/ $key => str_replace("\"", "“", $item)];
-        //    })
-        //    ->toArray();
-
         try {
-
             $this->jsonFileManager->writeJsonFile($data, $lang);
-
         } catch (\Exception $exception) {
-
             return redirect()->back()->withInput()->withErrors($exception->getMessage());
-
         }
 
         return redirect()->route("minimal_translation.index", [$lang])->with("status", "Saved");
@@ -81,10 +70,8 @@ class MinimalTranslationController
         return str_replace("_", " ", $value);
     }
 
-    private function spaceToLodash(string $value)
+    private function spaceAndPointToLodash(string $value)
     {
-        return str_replace(" ", "_", $value);
+        return str_replace([" ",'.'], "_", $value);
     }
-
-
 }

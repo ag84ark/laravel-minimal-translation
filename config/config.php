@@ -38,5 +38,8 @@ return [
     'server_paths' => [app_path(), resource_path()],
 
     'vue_i18n_functions' => ['\$t', 'this.\$t'],
-    'server_i18n_functions' => ['trans', '__'],
+    'server_i18n_functions' => ['trans', '__', '@lang'],
+
+    // This is a second varient for searching (experimental)
+    'enable_second_search' => false,
 ];
