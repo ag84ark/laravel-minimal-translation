@@ -3,7 +3,6 @@
 
 namespace Ag84ark\LaravelMinimalTranslation\Console\Commands;
 
-
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
 use Symfony\Component\Finder\Finder;
@@ -85,21 +84,47 @@ class Scanner
             ->files()
             ->contains($text);
 
-        if($showFiles){
+        if ($showFiles) {
             foreach ($finder as $file) {
                 if (preg_match_all("/$this->matchingPattern/iU", $file->getContents(), $matches)) {
-
                     foreach ($matches[2] as $key) {
-                        if($key === $text){
-                            dump("`$key` found in " . $file->getPathname() );
+                        if ($key === $text) {
+                            dump("`$key` found in " . $file->getPathname());
                         }
                     }
                 }
-
             }
         }
 
         return (bool) $finder->count();
+    }
 
+    public function getTranslationFiles($text = 'group.key') : array
+    {
+        $result = [];
+        $finder = new Finder();
+        $finder->in($this->scanPaths)
+            ->exclude('storage')
+            ->exclude('vendor')
+            ->exclude('lang')
+            ->name('*.php')
+            ->name('*.twig')
+            ->name('*.vue')
+            ->name('*.js')
+            ->files()
+            ->contains($text);
+
+        foreach ($finder as $file) {
+            if (preg_match_all("/$this->matchingPattern/iU", $file->getContents(), $matches)) {
+                foreach ($matches[2] as $key) {
+                    if ($key === $text) {
+                        $result[] =("`$key` found in " . $file->getPathname());
+                    }
+                }
+            }
+        }
+
+
+        return $result;
     }
 }

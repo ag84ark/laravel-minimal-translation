@@ -22,6 +22,18 @@ class JsonFileManager
         file_put_contents(base_path("resources/lang/$lang.json"), stripslashes($newJsonString));
     }
 
+    /**
+     * @param array $data
+     * @param string $lang
+     * @throws \Exception
+     */
+    public function writeJsonBaseFile(array $data): void
+    {
+        $newJsonString = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $baseFileName = config('laravel-minimal-translation.base_file');
+        file_put_contents(base_path("resources/lang/$baseFileName.json"), stripslashes($newJsonString));
+    }
+
 
     public function readJsonFile(string $lang = 'fr')
     {

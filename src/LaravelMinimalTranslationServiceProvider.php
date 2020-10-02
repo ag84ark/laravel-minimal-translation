@@ -16,9 +16,9 @@ class LaravelMinimalTranslationServiceProvider extends ServiceProvider
          * Optional methods to load your package assets
          */
         // $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'laravel-minimal-translation');
-         $this->loadViewsFrom(__DIR__.'/../resources/views', 'laravel-minimal-translation');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'laravel-minimal-translation');
         // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-         $this->loadRoutesFrom(__DIR__.'/../routes/routes.php');
+        $this->loadRoutesFrom(__DIR__.'/../routes/routes.php');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
@@ -42,7 +42,7 @@ class LaravelMinimalTranslationServiceProvider extends ServiceProvider
             ], 'lang');*/
 
             // Registering package commands.
-             $this->commands([
+            $this->commands([
                  LMTCommand::class
              ]);
         }

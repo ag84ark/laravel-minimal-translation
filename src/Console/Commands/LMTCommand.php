@@ -9,9 +9,9 @@ use Illuminate\Filesystem\Filesystem;
 
 class LMTCommand extends Command
 {
-
     protected $signature = 'lmt:scan-i18n
                             {--find= : Find a translate key and display files where was found (case-sensitive)}
+                            {--ignore : Write base file even if duplicates due to case-sensitive were found}
                             {--remove-old : Remove texts that were not found during the search}
                             {--display : Display only the found i18n texts, no write to base file}';
 
@@ -24,6 +24,8 @@ class LMTCommand extends Command
 
     private $display = false;
 
+    private $ignore = false;
+
     private $findKey;
 
     private $scanPaths = [];
@@ -34,28 +36,36 @@ class LMTCommand extends Command
 
     private $foundTranslations = [];
 
+    private $duplicatesFromCaseSensitive = [];
+
     public function handle(): void
     {
         $this->init();
 
-        if($this->findKey) {
-            $this->searchForKey();
+        if ($this->findKey) {
+            dump($this->searchForKey());
             return;
         }
 
         $this->getTranslations();
 
-        if($this->display){
+        if ($this->display) {
             dump($this->foundTranslations['single']['single'] ?? []);
             return;
         }
 
         $this->addToBaseTranslations();
 
+        if (!$this->ignore && count($this->duplicatesFromCaseSensitive)) {
+            $this->warn("Duplicates where found");
+            dump($this->duplicatesFromCaseSensitive);
+            $this->warn("Base file was not updated");
+            return;
+        }
+
         $this->writeBaseTranslation();
 
         $this->info("Finished: " . now()->toTimeString());
-
     }
 
     private function init(): void
@@ -73,18 +83,36 @@ class LMTCommand extends Command
         }
 
 
+        $this->ignore = $this->option('ignore') ?? $this->ignore;
         $this->display = $this->option('display') ?? $this->display;
         $this->removeOld = $this->option('remove-old') ?? $this->removeOld;
         $this->findKey = $this->option('find');
 
         $this->baseTranslations = $this->jsonFileManager->readJsonFile(config('laravel-minimal-translation.base_file'));
+    }
 
+    private function searchForKey(string $key = null): array
+    {
+        $key = $key ?? $this->findKey;
+        $this->info("Searching for translation key '$key'");
+        foreach (array_keys($this->scanPaths) as $value) {
+            try {
+                $this->info("Scanning for $value items in files: " . now()->toTimeString());
+                $scanner = new Scanner(
+                    new Filesystem,
+                    $this->scanPaths[$value],
+                    $this->translationMethods[$value]
+                );
+
+                return $scanner->getTranslationFiles($key);
+            } catch (\Exception $exception) {
+                $this->warn($exception->getMessage());
+            }
+        }
     }
 
     private function getTranslations(): void
     {
-
-
         foreach (array_keys($this->scanPaths) as $value) {
             try {
                 $this->info("Scanning for $value items in files: " . now()->toTimeString());
@@ -115,50 +143,42 @@ class LMTCommand extends Command
             } catch (\Exception $exception) {
                 $this->warn($exception->getMessage());
             }
-
-
-        }
-
-    }
-
-    private function searchForKey(): void
-    {
-        $this->info("Searching for translation key '$this->findKey'");
-        foreach (array_keys($this->scanPaths) as $value) {
-            try {
-                $this->info("Scanning for $value items in files: " . now()->toTimeString());
-                $scanner = new Scanner(
-                    new Filesystem,
-                    $this->scanPaths[$value],
-                    $this->translationMethods[$value]
-                );
-
-                $scanner->textExistsInFiles($this->findKey, true);
-
-            } catch (\Exception $exception) {
-                $this->warn($exception->getMessage());
-            }
-
-
         }
     }
 
-    private function addToBaseTranslations() : void
+    private function addToBaseTranslations(): void
     {
         $singleTranslations = $this->foundTranslations['single']['single'] ?? [];
-        if($this->removeOld){
+        if ($this->removeOld) {
             $this->baseTranslations = array_intersect_key($this->baseTranslations, $singleTranslations);
         }
-        $this->baseTranslations = array_merge($this->baseTranslations, $singleTranslations);
+        foreach (array_keys($singleTranslations) as $key) {
+            if (!array_key_exists($key, $this->baseTranslations)) {
+                $this->checkDuplicate($key);
+                $this->baseTranslations[$key] = $key;
+            }
+        }
+
         ksort($this->baseTranslations, SORT_NATURAL | SORT_FLAG_CASE);
-        $this->info("Base translations");
-        dump($this->baseTranslations);
+
     }
 
-    private function writeBaseTranslation():void
+    private function checkDuplicate(string $key): void
+    {
+        if (array_key_exists(strtolower($key), array_change_key_case($this->baseTranslations, CASE_LOWER))) {
+            foreach (array_keys($this->baseTranslations) as $array_key) {
+                if (strtolower($array_key) === strtolower($key)) {
+                    $files = $this->searchForKey($key);
+                    $this->duplicatesFromCaseSensitive[$array_key] = ['duplicate' => $key, 'files' => $files];
+                }
+            }
+        }
+    }
+
+    private function writeBaseTranslation(): void
     {
         try {
-            $this->jsonFileManager->writeJsonFile($this->baseTranslations, config('laravel-minimal-translation.base_file'));
+            $this->jsonFileManager->writeJsonBaseFile($this->baseTranslations);
         } catch (\Exception $e) {
             $this->warn("Error while trying to write the base file. Error: " . $e->getMessage());
         }
